@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Helpdesk SLA-rapportage — HD Customer Success · Mei 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+<style>
+:root{
+  --brand:#02425c; --brand-2:#0a6a8f; --bg:#eef2f5; --card:#ffffff;
+  --ink:#102a33; --muted:#5b727b; --line:#e3eaee;
+  --ok:#1f9d6b; --okbg:#e6f5ee; --bad:#d6453d; --badbg:#fbeae9; --warn:#e0a106; --warnbg:#fdf4dd;
+  --c1:#0a6a8f; --c2:#37a0c4; --c3:#1f9d6b; --c4:#d6453d; --c5:#7c6bb0; --c6:#e0883a; --c7:#9aa7ad;
+  --radius:14px; --gap:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto;padding:22px}
+header.top{background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#fff;border-radius:var(--radius);padding:26px 28px;box-shadow:0 6px 22px rgba(2,66,92,.18)}
+header.top .eyebrow{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;opacity:.8}
+header.top h1{font-size:24px;font-weight:700;margin-top:4px}
+header.top .sub{margin-top:8px;font-size:14px;opacity:.9;display:flex;gap:18px;flex-wrap:wrap}
+header.top .sub b{font-weight:700}
+
+.insights{background:var(--card);border-radius:var(--radius);padding:20px 22px;margin-top:var(--gap);box-shadow:0 1px 3px rgba(0,0,0,.06);border-left:5px solid var(--brand)}
+.insights h2{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:12px}
+.insights ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:10px 26px}
+.insights li{display:flex;gap:10px;font-size:14px;align-items:flex-start}
+.insights li .dot{flex:0 0 auto;width:9px;height:9px;border-radius:50%;margin-top:6px}
+@media(max-width:760px){.insights ul{grid-template-columns:1fr}}
+
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--gap);margin-top:var(--gap)}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border-radius:var(--radius);padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.kpi .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.kpi .value{font-size:26px;font-weight:800;margin-top:6px;letter-spacing:-.5px}
+.kpi .note{font-size:12px;color:var(--muted);margin-top:3px}
+.kpi .value.ok{color:var(--ok)} .kpi .value.warn{color:var(--warn)} .kpi .value.bad{color:var(--bad)}
+
+.section-title{font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:26px 4px 10px}
+
+.grid{display:grid;gap:var(--gap)}
+.g-2{grid-template-columns:1fr 1fr}
+.g-3{grid-template-columns:1.3fr 1fr 1fr}
+@media(max-width:900px){.g-2,.g-3{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card h3{font-size:14px;font-weight:700;margin-bottom:4px}
+.card .csub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.chart-box{position:relative;height:260px}
+.chart-box.tall{height:300px}
+
+/* SLA gauges */
+.gauges{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+@media(max-width:760px){.gauges{grid-template-columns:1fr}}
+.gauge-wrap{position:relative;height:210px}
+.gauge-center{position:absolute;top:46%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+.gauge-center .pct{font-size:38px;font-weight:800;letter-spacing:-1px}
+.gauge-center .cap{font-size:12px;color:var(--muted);margin-top:-2px}
+.legend{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+thead th{text-align:left;padding:11px 12px;border-bottom:2px solid var(--line);color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;user-select:none;white-space:nowrap}
+thead th:hover{color:var(--ink)}
+tbody td{padding:10px 12px;border-bottom:1px solid #f1f5f7}
+tbody tr:hover{background:#f7fafb}
+td.num,th.num{text-align:right}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-weight:700;font-size:12.5px}
+.pill.ok{background:var(--okbg);color:var(--ok)} .pill.warn{background:var(--warnbg);color:var(--warn)} .pill.bad{background:var(--badbg);color:var(--bad)}
+.bar-inline{height:7px;border-radius:4px;background:#eef2f5;overflow:hidden;min-width:70px}
+.bar-inline > i{display:block;height:100%}
+footer{margin:24px 4px 8px;font-size:12px;color:var(--muted)}
+.note-box{font-size:12px;color:var(--muted);background:#f7fafb;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">Support Team · Treams</div>
+    <h1>Helpdesk SLA-rapportage — HD Customer Success</h1>
+    <div class="sub">
+      <span>Periode: <b>Mei 2026</b></span>
+      <span>Scope: tickets <b>aangemaakt</b> in mei</span>
+      <span>Volume: <b id="hv-total"></b> tickets</span>
+      <span>Gegenereerd: <b id="hv-date"></b></span>
+    </div>
+  </header>
+
+  <div class="insights">
+    <h2>Belangrijkste bevindingen</h2>
+    <ul>
+      <li><span class="dot" style="background:var(--ok)"></span><div><b>Eerste reactie zit goed:</b> 93% van de tickets kreeg op tijd een eerste reactie (binnen de SLA-norm).</div></li>
+      <li><span class="dot" style="background:var(--bad)"></span><div><b>Breaches zijn geconcentreerd:</b> 21 van de 32 overschrijdingen (66%) staan bij één behandelaar die ~6% van het volume doet.</div></li>
+      <li><span class="dot" style="background:var(--warn)"></span><div><b>Prioriteren is zwakker:</b> "Time to prioritize" (norm 15 min) wordt in 86,6% gehaald — 67 keer te laat opgepakt.</div></li>
+      <li><span class="dot" style="background:var(--c1)"></span><div><b>Doorlooptijd kent een lange staart:</b> mediaan 3,3 dagen, maar p90 is 14 dagen — vooral door wacht-statussen, niet door de eerste reactie.</div></li>
+      <li><span class="dot" style="background:var(--c5)"></span><div><b>Kennisvraag domineert:</b> 42% is een "how-to"-vraag → directe input voor de Academy / kennisbank.</div></li>
+      <li><span class="dot" style="background:var(--c2)"></span><div><b>Kernteam presteert sterk:</b> Pim (97%), Shailesh (99%) en Sander (100%) op eerste reactie.</div></li>
+    </ul>
+  </div>
+
+  <section class="kpis" id="kpis"></section>
+
+  <div class="section-title">SLA-prestatie</div>
+  <div class="gauges">
+    <div class="card">
+      <h3>Time to First Response</h3>
+      <div class="csub">Eerste reactie naar de klant · norm 18u (Prio&nbsp;4), 9u (Prio&nbsp;3)</div>
+      <div class="gauge-wrap"><canvas id="g_ttfr"></canvas>
+        <div class="gauge-center"><div class="pct" id="g_ttfr_pct"></div><div class="cap">behaald</div></div>
+      </div>
+      <div class="legend" id="lg_ttfr"></div>
+    </div>
+    <div class="card">
+      <h3>Time to Prioritize</h3>
+      <div class="csub">Ticket op juiste prioriteit gezet · norm 15 min</div>
+      <div class="gauge-wrap"><canvas id="g_ttp"></canvas>
+        <div class="gauge-center"><div class="pct" id="g_ttp_pct"></div><div class="cap">behaald</div></div>
+      </div>
+      <div class="legend" id="lg_ttp"></div>
+    </div>
+  </div>
+
+  <div class="section-title">Reactie- &amp; doorlooptijden</div>
+  <div class="grid g-2">
+    <div class="card"><h3>Verdeling reactietijd (eerste reactie)</h3>
+      <div class="csub">Werkuren tot eerste reactie · stippellijn = SLA-norm 18u</div>
+      <div class="chart-box"><canvas id="c_ttfrhist"></canvas></div>
+    </div>
+    <div class="card"><h3>Verdeling doorlooptijd tot oplossing</h3>
+      <div class="csub">Kalendertijd van aanmaak tot resolutie (incl. wachttijd klant/derden)</div>
+      <div class="chart-box"><canvas id="c_reshist"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-title">Volume &amp; status</div>
+  <div class="grid g-3">
+    <div class="card"><h3>Aangemaakte tickets per dag</h3><div class="csub">Weekenden lichter gemarkeerd</div>
+      <div class="chart-box"><canvas id="c_daily"></canvas></div></div>
+    <div class="card"><h3>Status</h3><div class="csub">Huidige verdeling</div>
+      <div class="chart-box"><canvas id="c_statuscat"></canvas></div></div>
+    <div class="card"><h3>Melder</h3><div class="csub">Wie opent de tickets</div>
+      <div class="chart-box"><canvas id="c_reporter"></canvas></div></div>
+  </div>
+
+  <div class="section-title">Waar gaan de tickets over?</div>
+  <div class="grid g-2">
+    <div class="card"><h3>Categorie</h3><div class="csub">Top 10 (ticketcategorie)</div>
+      <div class="chart-box tall"><canvas id="c_cat"></canvas></div></div>
+    <div class="card"><h3>Module / productgebied</h3><div class="csub">Top 10</div>
+      <div class="chart-box tall"><canvas id="c_mod"></canvas></div></div>
+  </div>
+
+  <div class="section-title">Prestatie per behandelaar</div>
+  <div class="card">
+    <div class="csub">Sorteerbaar — klik op een kolomkop. SLA% = Time to First Response (behaald ÷ beslist).</div>
+    <div style="overflow-x:auto"><table id="agentTable">
+      <thead><tr>
+        <th data-k="name">Behandelaar</th>
+        <th class="num" data-k="tickets">Tickets</th>
+        <th class="num" data-k="breached">Breaches</th>
+        <th class="num" data-k="median_resp">Med. reactietijd (u)</th>
+        <th class="num" data-k="avg_comments">Gem. reacties</th>
+        <th class="num" data-k="pct">SLA% (1e reactie)</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <div class="note-box" id="agentNote"></div>
+  </div>
+
+  <footer>
+    Bron: Jira project <b>HD</b> (carerix.atlassian.net) · 501 tickets aangemaakt 1–31 mei 2026 · SLA-velden: <i>Time to First Response</i> &amp; <i>Time to Prioritize</i>.
+    "Geen meting" = tickets zonder geregistreerde SLA-cyclus (grotendeels opgelost, geen verborgen achterstand). Doorlooptijd is kalendertijd; reactietijd is werkuren volgens de SLA-kalender.
+  </footer>
+</div>
+
+<script>
+const DATA = {"meta": {"project": "HD — Customer Success", "period": "Mei 2026", "total": 501, "generated": "2026-06-09"}, "kpi": {"total": 501, "done": 402, "done_pct": 80.2, "open": 99, "ttfr_pct": 93.0, "ttfr_met": 424, "ttfr_dec": 456, "ttfr_br": 32, "ttp_pct": 86.6, "ttp_met": 433, "ttp_dec": 500, "ttp_br": 67, "ttfr_median": 6.5, "res_median_h": 78.2, "res_median_d": 3.3}, "sla_ttfr": {"labels": ["Behaald", "Niet behaald", "Geen meting"], "data": [424, 32, 45]}, "sla_ttp": {"labels": ["Behaald", "Niet behaald", "Geen meting"], "data": [433, 67, 1]}, "status": {"labels": ["Resolved", "Wait for customer", "Wait for PMT", "Waiting for ThirdParty", "Returned from customer", "Resolved, Wait for confirmation", "To Do", "In Progress"], "data": [398, 44, 26, 16, 11, 4, 1, 1]}, "statuscat": {"labels": ["Afgehandeld", "In behandeling", "Te doen"], "data": [402, 87, 12]}, "daily": [{"date": "2026-05-01", "label": "01-05", "dow": 4, "count": 27}, {"date": "2026-05-02", "label": "02-05", "dow": 5, "count": 0}, {"date": "2026-05-03", "label": "03-05", "dow": 6, "count": 1}, {"date": "2026-05-04", "label": "04-05", "dow": 0, "count": 40}, {"date": "2026-05-05", "label": "05-05", "dow": 1, "count": 32}, {"date": "2026-05-06", "label": "06-05", "dow": 2, "count": 24}, {"date": "2026-05-07", "label": "07-05", "dow": 3, "count": 16}, {"date": "2026-05-08", "label": "08-05", "dow": 4, "count": 16}, {"date": "2026-05-09", "label": "09-05", "dow": 5, "count": 1}, {"date": "2026-05-10", "label": "10-05", "dow": 6, "count": 0}, {"date": "2026-05-11", "label": "11-05", "dow": 0, "count": 39}, {"date": "2026-05-12", "label": "12-05", "dow": 1, "count": 35}, {"date": "2026-05-13", "label": "13-05", "dow": 2, "count": 22}, {"date": "2026-05-14", "label": "14-05", "dow": 3, "count": 2}, {"date": "2026-05-15", "label": "15-05", "dow": 4, "count": 17}, {"date": "2026-05-16", "label": "16-05", "dow": 5, "count": 1}, {"date": "2026-05-17", "label": "17-05", "dow": 6, "count": 0}, {"date": "2026-05-18", "label": "18-05", "dow": 0, "count": 26}, {"date": "2026-05-19", "label": "19-05", "dow": 1, "count": 31}, {"date": "2026-05-20", "label": "20-05", "dow": 2, "count": 27}, {"date": "2026-05-21", "label": "21-05", "dow": 3, "count": 22}, {"date": "2026-05-22", "label": "22-05", "dow": 4, "count": 25}, {"date": "2026-05-23", "label": "23-05", "dow": 5, "count": 0}, {"date": "2026-05-24", "label": "24-05", "dow": 6, "count": 0}, {"date": "2026-05-25", "label": "25-05", "dow": 0, "count": 2}, {"date": "2026-05-26", "label": "26-05", "dow": 1, "count": 29}, {"date": "2026-05-27", "label": "27-05", "dow": 2, "count": 19}, {"date": "2026-05-28", "label": "28-05", "dow": 3, "count": 26}, {"date": "2026-05-29", "label": "29-05", "dow": 4, "count": 18}, {"date": "2026-05-30", "label": "30-05", "dow": 5, "count": 0}, {"date": "2026-05-31", "label": "31-05", "dow": 6, "count": 3}], "ttfr_hist": {"labels": ["0–2u", "2–4u", "4–8u", "8–12u", "12–18u", "18–24u", ">24u"], "data": [145, 38, 78, 82, 80, 11, 22], "goal_idx": 5}, "res_hist": {"labels": ["<4u", "4–8u", "8–24u", "1–3 dgn", "3–7 dgn", "7–14 dgn", ">14 dgn"], "data": [54, 16, 36, 72, 60, 103, 44]}, "category": {"labels": ["Question (How-to)", "Data Issue / Data Inconsistency", "Configuration / Setup", "Incident/Disruption", "Change Request", "Account/Access", "Bug", "Feature Request", "Integration Issue"], "data": [210, 51, 44, 43, 25, 21, 15, 9, 2]}, "module": {"labels": ["Core CX", "API", "CX E-mail Sync", "CX Templates", "CX RMA", "Portals", "CX Calendar sync", "Nixz", "My Assistent", "admin"], "data": [183, 32, 30, 18, 18, 16, 10, 10, 10, 9]}, "reporter": {"labels": ["Klant", "Intern (Carerix)", "Overig/Automation"], "data": [332, 159, 10]}, "agents": [{"name": "Pim Luiten", "tickets": 252, "met": 231, "breached": 7, "pct": 97, "median_resp": 6.0, "avg_comments": 5.6}, {"name": "Shailesh Bhagwandas", "tickets": 112, "met": 95, "breached": 1, "pct": 99, "median_resp": 5.7, "avg_comments": 6.2}, {"name": "Sander Damen", "tickets": 97, "met": 88, "breached": 0, "pct": 100, "median_resp": 6.0, "avg_comments": 6.5}, {"name": "Tracy MOUKOLA-GOLO", "tickets": 30, "met": 6, "breached": 21, "pct": 22, "median_resp": 28.5, "avg_comments": 6.1}, {"name": "Niet toegewezen", "tickets": 5, "met": 2, "breached": 0, "pct": 100, "median_resp": 13.2, "avg_comments": 1.4}, {"name": "Lisa RAMET", "tickets": 3, "met": 1, "breached": 2, "pct": 33, "median_resp": 23.2, "avg_comments": 5}, {"name": "Aram SULUKDJIAN", "tickets": 1, "met": 0, "breached": 1, "pct": 0, "median_resp": 31.4, "avg_comments": 6}, {"name": "Patrick Ligthart", "tickets": 1, "met": 1, "breached": 0, "pct": 100, "median_resp": 10.5, "avg_comments": 5}], "weekly": [{"week": "Wk 18", "created": 28, "pct": 100}, {"week": "Wk 19", "created": 129, "pct": 95}, {"week": "Wk 20", "created": 116, "pct": 89}, {"week": "Wk 21", "created": 131, "pct": 94}, {"week": "Wk 22", "created": 97, "pct": 92}]};
+const fmtPct = v => (v==null?'—':v.toFixed ? v.toFixed(1)+'%' : v+'%');
+
+document.getElementById('hv-total').textContent = DATA.kpi.total;
+document.getElementById('hv-date').textContent = DATA.meta.generated;
+
+// ---------- KPI cards ----------
+function cls(p, good, ok){ return p>=good?'ok':(p>=ok?'warn':'bad'); }
+const k = DATA.kpi;
+const kpis = [
+  {label:'Tickets (mei)', value:k.total, note:`${k.done} afgehandeld · ${k.open} open`},
+  {label:'Afgehandeld', value:k.done_pct+'%', note:`${k.done} van ${k.total}`, c:cls(k.done_pct,75,60)},
+  {label:'SLA 1e reactie', value:k.ttfr_pct+'%', note:`${k.ttfr_met}/${k.ttfr_dec} · ${k.ttfr_br} te laat`, c:cls(k.ttfr_pct,90,80)},
+  {label:'SLA prioriteren', value:k.ttp_pct+'%', note:`${k.ttp_met}/${k.ttp_dec} · ${k.ttp_br} te laat`, c:cls(k.ttp_pct,90,80)},
+  {label:'Med. reactietijd', value:k.ttfr_median+'u', note:'werkuren tot 1e reactie'},
+  {label:'Med. doorlooptijd', value:k.res_median_d+' dgn', note:`≈ ${k.res_median_h}u tot oplossing`},
+];
+document.getElementById('kpis').innerHTML = kpis.map(x=>`
+  <div class="kpi"><div class="label">${x.label}</div>
+  <div class="value ${x.c||''}">${x.value}</div><div class="note">${x.note}</div></div>`).join('');
+
+// ---------- helpers ----------
+const GREENREDGREY=['#1f9d6b','#d6453d','#c7d0d4'];
+function gauge(canvas, obj, pctEl, legendEl, pct){
+  new Chart(document.getElementById(canvas),{type:'doughnut',
+    data:{labels:obj.labels,datasets:[{data:obj.data,backgroundColor:GREENREDGREY,borderColor:'#fff',borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return `${c.label}: ${c.parsed} (${(c.parsed/t*100).toFixed(1)}%)`;}}}}}});
+  const el=document.getElementById(pctEl); el.textContent=pct+'%';
+  el.style.color = pct>=90?'var(--ok)':(pct>=80?'var(--warn)':'var(--bad)');
+  document.getElementById(legendEl).innerHTML = obj.labels.map((l,i)=>`<span><i style="background:${GREENREDGREY[i]}"></i>${l} (${obj.data[i]})</span>`).join('');
+}
+gauge('g_ttfr',DATA.sla_ttfr,'g_ttfr_pct','lg_ttfr',k.ttfr_pct);
+gauge('g_ttp',DATA.sla_ttp,'g_ttp_pct','lg_ttp',k.ttp_pct);
+
+// ---------- TTFR histogram (color past goal red) ----------
+new Chart(document.getElementById('c_ttfrhist'),{type:'bar',
+  data:{labels:DATA.ttfr_hist.labels,datasets:[{data:DATA.ttfr_hist.data,
+    backgroundColor:DATA.ttfr_hist.labels.map((_,i)=> i>=DATA.ttfr_hist.goal_idx ? '#d6453d' : '#0a6a8f'),
+    borderRadius:5}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:c=>`${c.parsed.y} tickets`}}},
+    scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#eef2f5'}}}}});
+
+// ---------- resolution histogram ----------
+new Chart(document.getElementById('c_reshist'),{type:'bar',
+  data:{labels:DATA.res_hist.labels,datasets:[{data:DATA.res_hist.data,backgroundColor:'#37a0c4',borderRadius:5}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:c=>`${c.parsed.y} tickets`}}},
+    scales:{x:{grid:{display:false}},y:{beginAtZero:true,grid:{color:'#eef2f5'}}}}});
+
+// ---------- daily volume ----------
+new Chart(document.getElementById('c_daily'),{type:'bar',
+  data:{labels:DATA.daily.map(d=>d.label),datasets:[{data:DATA.daily.map(d=>d.count),
+    backgroundColor:DATA.daily.map(d=> d.dow>=5 ? '#c7d0d4' : '#0a6a8f'),borderRadius:3}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+    tooltip:{callbacks:{title:items=>{const d=DATA.daily[items[0].dataIndex];return d.date;},label:c=>`${c.parsed.y} tickets`}}},
+    scales:{x:{grid:{display:false},ticks:{maxRotation:90,minRotation:90,font:{size:9}}},y:{beginAtZero:true,grid:{color:'#eef2f5'}}}}});
+
+// ---------- status cat doughnut ----------
+new Chart(document.getElementById('c_statuscat'),{type:'doughnut',
+  data:{labels:DATA.statuscat.labels,datasets:[{data:DATA.statuscat.data,backgroundColor:['#1f9d6b','#e0a106','#9aa7ad'],borderColor:'#fff',borderWidth:2}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:14,font:{size:12}}},
+    tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return `${c.label}: ${c.parsed} (${(c.parsed/t*100).toFixed(1)}%)`;}}}}}});
+
+// ---------- reporter doughnut ----------
+new Chart(document.getElementById('c_reporter'),{type:'doughnut',
+  data:{labels:DATA.reporter.labels,datasets:[{data:DATA.reporter.data,backgroundColor:['#0a6a8f','#7c6bb0','#c7d0d4'],borderColor:'#fff',borderWidth:2}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,padding:14,font:{size:12}}},
+    tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return `${c.label}: ${c.parsed} (${(c.parsed/t*100).toFixed(1)}%)`;}}}}}});
+
+// ---------- category / module horizontal ----------
+function hbar(canvas,obj,color){
+  new Chart(document.getElementById(canvas),{type:'bar',
+    data:{labels:obj.labels,datasets:[{data:obj.data,backgroundColor:color,borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>`${c.parsed.x} tickets`}}},
+      scales:{x:{beginAtZero:true,grid:{color:'#eef2f5'}},y:{grid:{display:false},ticks:{font:{size:11.5}}}}}});
+}
+hbar('c_cat',DATA.category,'#0a6a8f');
+hbar('c_mod',DATA.module,'#37a0c4');
+
+// ---------- agent table ----------
+const tbody = document.querySelector('#agentTable tbody');
+let sortK='tickets', sortDir='desc';
+function pillClass(p){ return p==null?'':(p>=90?'ok':(p>=80?'warn':'bad')); }
+function renderAgents(){
+  const rows=[...DATA.agents].sort((a,b)=>{
+    let x=a[sortK], y=b[sortK];
+    if(x==null)x=-1; if(y==null)y=-1;
+    if(typeof x==='string'){return sortDir==='asc'?x.localeCompare(y):y.localeCompare(x);}
+    return sortDir==='asc'? x-y : y-x;
+  });
+  const maxT=Math.max(...DATA.agents.map(a=>a.tickets));
+  tbody.innerHTML=rows.map(a=>`<tr>
+    <td>${a.name}</td>
+    <td class="num"><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">
+        <span>${a.tickets}</span><div class="bar-inline" style="width:80px"><i style="width:${a.tickets/maxT*100}%;background:#0a6a8f"></i></div></div></td>
+    <td class="num">${a.breached}</td>
+    <td class="num">${a.median_resp==null?'—':a.median_resp}</td>
+    <td class="num">${a.avg_comments}</td>
+    <td class="num"><span class="pill ${pillClass(a.pct)}">${a.pct==null?'—':a.pct+'%'}</span></td>
+  </tr>`).join('');
+}
+document.querySelectorAll('#agentTable thead th').forEach(th=>{
+  th.addEventListener('click',()=>{const kk=th.dataset.k; if(sortK===kk){sortDir=sortDir==='asc'?'desc':'asc';}else{sortK=kk;sortDir= kk==='name'?'asc':'desc';} renderAgents();});
+});
+renderAgents();
+document.getElementById('agentNote').innerHTML =
+  '<b>Let op:</b> "Behandelaar" is de <i>huidige</i> toegewezen persoon, niet per se wie als eerste reageerde. '+
+  'De concentratie van breaches bij één persoon (21 van 32) is het sterkste signaal voor een gerichte actie '+
+  '(onboarding, werkverdeling of dekkingsuren) in plaats van een teambreed probleem.';
+</script>
+</body>
+</html>
