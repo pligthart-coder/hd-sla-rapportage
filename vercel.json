@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/(?!api/rss)(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",
@@ -10,5 +10,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/rss.js": {
+      "maxDuration": 30
+    }
+  }
 }
