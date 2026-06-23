@@ -1,0 +1,16 @@
+{
+  "name": "carerix-rss-feed",
+  "version": "1.0.0",
+  "description": "Carerix GraphQL RSS Feed — publications with medium web/betaald",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
