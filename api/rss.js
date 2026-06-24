@@ -128,12 +128,18 @@ function buildPublicationQuery() {
   `;
 }
 
-async function fetchPublications(token) {
+const VALID_MEDIUMS = ['web', 'betaald'];
+
+async function fetchPublications(token, medium) {
   const now = new Date();
   const dateStr = formatDateCarerix(now);
 
-  // Filter: medium is "web" OR "betaald", publicationStart <= today, publicationEnd > today OR empty
-  const qualifier = `(toMedium.code = 'web' or toMedium.code = 'betaald') and publicationStart <= (NSCalendarDate)'${dateStr} Etc/GMT' and (publicationEnd > (NSCalendarDate)'${dateStr} Etc/GMT' or publicationEnd = nil)`;
+  // Build medium filter: single medium or both
+  const mediumFilter = medium
+    ? `toMedium.code = '${medium}'`
+    : `(toMedium.code = 'web' or toMedium.code = 'betaald')`;
+
+  const qualifier = `${mediumFilter} and publicationStart <= (NSCalendarDate)'${dateStr} Etc/GMT' and (publicationEnd > (NSCalendarDate)'${dateStr} Etc/GMT' or publicationEnd = nil)`;
 
   const res = await fetch(CARERIX_GRAPHQL_URI, {
     method: 'POST',
@@ -380,12 +386,13 @@ ${items}
 
 export default async function handler(req, res) {
   try {
-    const token = await getAccessToken();
-    const publications = await fetchPublications(token);
+    // Support ?medium=web or ?medium=betaald to split feeds
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const mediumParam = url.searchParams.get('medium');
+    const medium = mediumParam && VALID_MEDIUMS.includes(mediumParam) ? mediumParam : null;
 
-    // Deduplicate: if a vacancy has both "web" and "betaald" publications,
-    // we only want one item per publication (not per vacancy).
-    // The XML shows one <item> per publication, with pubIdList grouping siblings.
+    const token = await getAccessToken();
+    const publications = await fetchPublications(token, medium);
     const xml = buildRssFeed(publications);
 
     // Cache for 1 hour (3600s), serve stale while revalidating

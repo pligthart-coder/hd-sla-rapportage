@@ -52,9 +52,10 @@ const PORT = parseInt(process.env.PORT, 10) || 3000;
 const CACHE_TTL = parseInt(process.env.CACHE_TTL_SECONDS, 10) || 3600;
 const CARERIX_GRAPHQL_URI = 'https://api.carerix.io/graphql/v1/graphql';
 
-// ─── In-memory cache ─────────────────────────────────────────────────────────
+// ─── In-memory cache (per medium) ────────────────────────────────────────────
 
-let cache = { xml: null, timestamp: 0 };
+const VALID_MEDIUMS = ['web', 'betaald'];
+const cacheStore = {};
 
 // ─── OAuth2 Token ────────────────────────────────────────────────────────────
 
@@ -176,11 +177,15 @@ function buildPublicationQuery() {
   `;
 }
 
-async function fetchPublications(token) {
+async function fetchPublications(token, medium) {
   const now = new Date();
   const dateStr = formatDateCarerix(now);
 
-  const qualifier = `(toMedium.code = 'web' or toMedium.code = 'betaald') and publicationStart <= (NSCalendarDate)'${dateStr} Etc/GMT' and (publicationEnd > (NSCalendarDate)'${dateStr} Etc/GMT' or publicationEnd = nil)`;
+  const mediumFilter = medium
+    ? `toMedium.code = '${medium}'`
+    : `(toMedium.code = 'web' or toMedium.code = 'betaald')`;
+
+  const qualifier = `${mediumFilter} and publicationStart <= (NSCalendarDate)'${dateStr} Etc/GMT' and (publicationEnd > (NSCalendarDate)'${dateStr} Etc/GMT' or publicationEnd = nil)`;
 
   const res = await fetch(CARERIX_GRAPHQL_URI, {
     method: 'POST',
@@ -412,21 +417,25 @@ ${items}
 </rss>`;
 }
 
-// ─── Generate RSS feed (with caching) ────────────────────────────────────────
+// ─── Generate RSS feed (with per-medium caching) ────────────────────────────
 
-async function generateFeed() {
+async function generateFeed(medium) {
+  const cacheKey = medium || '_all';
+  const cached = cacheStore[cacheKey];
   const now = Date.now();
-  if (cache.xml && (now - cache.timestamp) < CACHE_TTL * 1000) {
-    return cache.xml;
+
+  if (cached && (now - cached.timestamp) < CACHE_TTL * 1000) {
+    return cached.xml;
   }
 
-  console.log(`[${new Date().toISOString()}] Refreshing RSS feed from Carerix API...`);
+  const label = medium || 'all';
+  console.log(`[${new Date().toISOString()}] Refreshing RSS feed (medium=${label}) from Carerix API...`);
   const token = await getAccessToken();
-  const publications = await fetchPublications(token);
+  const publications = await fetchPublications(token, medium);
   const xml = buildRssFeed(publications);
 
-  cache = { xml, timestamp: now };
-  console.log(`[${new Date().toISOString()}] RSS feed cached — ${publications.length} items`);
+  cacheStore[cacheKey] = { xml, timestamp: now };
+  console.log(`[${new Date().toISOString()}] RSS feed cached (medium=${label}) — ${publications.length} items`);
 
   return xml;
 }
@@ -434,17 +443,28 @@ async function generateFeed() {
 // ─── HTTP Server ─────────────────────────────────────────────────────────────
 
 const server = createServer(async (req, res) => {
+  const parsedUrl = new URL(req.url, `http://localhost:${PORT}`);
+  const pathname = parsedUrl.pathname;
+
   // Health check
-  if (req.url === '/health') {
+  if (pathname === '/health') {
+    const now = Date.now();
+    const caches = Object.entries(cacheStore).map(([key, c]) => ({
+      medium: key === '_all' ? 'all' : key,
+      cached: true,
+      cacheAge: Math.round((now - c.timestamp) / 1000),
+    }));
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', cached: cache.xml !== null, cacheAge: cache.timestamp ? Math.round((Date.now() - cache.timestamp) / 1000) : null }));
+    res.end(JSON.stringify({ status: 'ok', caches }));
     return;
   }
 
-  // RSS feed — served on / and /api/rss
-  if (req.url === '/' || req.url === '/api/rss') {
+  // RSS feed — served on / and /api/rss, with optional ?medium=web or ?medium=betaald
+  if (pathname === '/' || pathname === '/api/rss') {
     try {
-      const xml = await generateFeed();
+      const mediumParam = parsedUrl.searchParams.get('medium');
+      const medium = mediumParam && VALID_MEDIUMS.includes(mediumParam) ? mediumParam : null;
+      const xml = await generateFeed(medium);
       res.writeHead(200, {
         'Content-Type': 'application/xml; charset=utf-8',
         'Cache-Control': `public, max-age=${CACHE_TTL}`,
@@ -466,7 +486,9 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Carerix RSS feed server running on http://localhost:${PORT}`);
-  console.log(`  RSS feed: http://localhost:${PORT}/api/rss`);
+  console.log(`  All:      http://localhost:${PORT}/api/rss`);
+  console.log(`  Web:      http://localhost:${PORT}/api/rss?medium=web`);
+  console.log(`  Betaald:  http://localhost:${PORT}/api/rss?medium=betaald`);
   console.log(`  Health:   http://localhost:${PORT}/health`);
   console.log(`  Cache TTL: ${CACHE_TTL}s`);
 });
