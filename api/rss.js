@@ -52,6 +52,8 @@ function buildPublicationQuery() {
           offerInformation
           functionContactInformation
           applicationContactInformation
+          applyUrl
+          vacancyUrl
           owner {
             _id
             firstName
@@ -359,6 +361,8 @@ function publicationToXmlItem(pub) {
 <applicationContactInformation>${cdata(pub.applicationContactInformation || '')}</applicationContactInformation>
 <vacancyID>${cdata(vacancy._id || '')}</vacancyID>
 <medium>${cdata(pub.toMedium?.code || '')}</medium>
+<applyUrl>${cdata(pub.applyUrl || '')}</applyUrl>
+<jobUrl>${cdata(pub.vacancyUrl || '')}</jobUrl>
 <procedure>${cdata(vacancy.procedureList?.items?.[0]?.value || '')}</procedure>
 <hoursPerWeek>${vacancy.hoursPerWeek || ''}</hoursPerWeek>
 ${formatSalaryTag('minSalary', vacancy.minSalary)}
