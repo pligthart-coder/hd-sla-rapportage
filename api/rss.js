@@ -387,8 +387,9 @@ ${items}
 export default async function handler(req, res) {
   try {
     // Support ?medium=web or ?medium=betaald to split feeds
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const mediumParam = url.searchParams.get('medium');
+    // Use req.query (Vercel built-in) with URL parsing as fallback (local/standalone)
+    const mediumParam = req.query?.medium
+      || new URL(req.url, `http://${req.headers?.host || 'localhost'}`).searchParams.get('medium');
     const medium = mediumParam && VALID_MEDIUMS.includes(mediumParam) ? mediumParam : null;
 
     const token = await getAccessToken();
