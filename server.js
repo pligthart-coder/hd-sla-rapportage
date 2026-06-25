@@ -94,13 +94,13 @@ function buildPublicationQuery() {
           titleInformation
           workLocation
           additionalInfo
-          introInformation
-          companyInformation
-          vacancyInformation
-          requirementsInformation
-          offerInformation
-          functionContactInformation
-          applicationContactInformation
+          introInformationHTML
+          companyInformationHTML
+          vacancyInformationHTML
+          requirementsInformationHTML
+          offerInformationHTML
+          functionContactInformationHTML
+          applicationContactInformationHTML
           applyUrl
           vacancyUrl
           owner {
@@ -381,19 +381,19 @@ function publicationToXmlItem(pub) {
 <region2>${cdata(vacancy.toProvince2Node?.value || '')}</region2>
 <country3>${cdata(vacancy.toCountry3Node?.value || '')}</country3>
 <region3>${cdata(vacancy.toProvince3Node?.value || '')}</region3>
-<introInformation>${cdata(pub.introInformation || '')}</introInformation>
-<companyInformation>${cdata(pub.companyInformation || '')}</companyInformation>
+<introInformation>${cdata(pub.introInformationHTML || '')}</introInformation>
+<companyInformation>${cdata(pub.companyInformationHTML || '')}</companyInformation>
 <branche0>${cdata(vacancy.toBrancheLevel1?.value || '')}</branche0>
 <branche1>${cdata(vacancy.toBrancheLevel2?.value || '')}</branche1>
 <category>${cdata(vacancy.toCategoryNode?.value || '')}</category>
 <function0>${cdata(vacancy.toFunctionLevel1?.value || '')}</function0>
 <function1>${cdata(vacancy.toFunctionLevel2?.value || '')}</function1>
 <toWorkLevelNode>${cdata(vacancy.toExperienceLevelNode?.value || '')}</toWorkLevelNode>
-<vacancyInformation>${cdata(pub.vacancyInformation || '')}</vacancyInformation>
-<requirementsInformation>${cdata(pub.requirementsInformation || '')}</requirementsInformation>
-<offerInformation>${cdata(pub.offerInformation || '')}</offerInformation>
-<functionContactInformation>${cdata(pub.functionContactInformation || '')}</functionContactInformation>
-<applicationContactInformation>${cdata(pub.applicationContactInformation || '')}</applicationContactInformation>
+<vacancyInformation>${cdata(pub.vacancyInformationHTML || '')}</vacancyInformation>
+<requirementsInformation>${cdata(pub.requirementsInformationHTML || '')}</requirementsInformation>
+<offerInformation>${cdata(pub.offerInformationHTML || '')}</offerInformation>
+<functionContactInformation>${cdata(pub.functionContactInformationHTML || '')}</functionContactInformation>
+<applicationContactInformation>${cdata(pub.applicationContactInformationHTML || '')}</applicationContactInformation>
 <vacancyID>${cdata(vacancy._id || '')}</vacancyID>
 <medium>${cdata(pub.toMedium?.code || '')}</medium>
 <applyUrl>${cdata(pub.applyUrl || '')}</applyUrl>
