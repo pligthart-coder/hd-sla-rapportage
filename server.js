@@ -189,33 +189,46 @@ async function fetchPublications(token, medium) {
 
   const qualifier = `${mediumFilter} and publicationStart <= (NSCalendarDate)'${dateStr} Etc/GMT' and (publicationEnd > (NSCalendarDate)'${dateStr} Etc/GMT' or publicationEnd = nil)`;
 
-  const res = await fetch(CARERIX_GRAPHQL_URI, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      query: buildPublicationQuery(),
-      variables: {
-        qualifier,
-        pageable: { page: 0, size: 10000 },
+  // Paginate in batches of 500 to avoid Carerix API stripping HTML from large responses
+  const PAGE_SIZE = 500;
+  let allItems = [];
+  let page = 0;
+
+  while (true) {
+    const res = await fetch(CARERIX_GRAPHQL_URI, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
       },
-    }),
-  });
+      body: JSON.stringify({
+        query: buildPublicationQuery(),
+        variables: {
+          qualifier,
+          pageable: { page, size: PAGE_SIZE },
+        },
+      }),
+    });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`GraphQL request failed: ${res.status} ${text}`);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`GraphQL request failed: ${res.status} ${text}`);
+    }
+
+    const json = await res.json();
+
+    if (json.errors) {
+      throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
+    }
+
+    const items = json.data?.crPublicationPage?.items || [];
+    allItems = allItems.concat(items);
+
+    if (items.length < PAGE_SIZE) break;
+    page++;
   }
 
-  const json = await res.json();
-
-  if (json.errors) {
-    throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
-  }
-
-  return json.data?.crPublicationPage?.items || [];
+  return allItems;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
