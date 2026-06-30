@@ -416,8 +416,8 @@ export default async function handler(req, res) {
     const publications = await fetchPublications(token, medium);
     const xml = buildRssFeed(publications);
 
-    // Cache for 1 hour (3600s), serve stale while revalidating
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=600');
+    // Cache for 5 minutes (300s), serve stale while revalidating for up to 1 hour
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=3600');
     res.setHeader('Content-Type', 'application/xml; charset=utf-8');
     res.status(200).send(xml);
   } catch (err) {

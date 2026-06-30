@@ -14,7 +14,7 @@
  *   CARERIX_CLIENT_SECRET   — OAuth2 client secret
  *   CARERIX_TOKEN_ENDPOINT  — OAuth2 token URL
  *   PORT                    — HTTP port (default 3000)
- *   CACHE_TTL_SECONDS       — In-memory cache lifetime (default 3600)
+ *   CACHE_TTL_SECONDS       — In-memory cache lifetime (default 300)
  */
 
 import { createServer } from 'node:http';
@@ -49,7 +49,7 @@ if (existsSync(envPath)) {
 // ─── Configuration ───────────────────────────────────────────────────────────
 
 const PORT = parseInt(process.env.PORT, 10) || 3000;
-const CACHE_TTL = parseInt(process.env.CACHE_TTL_SECONDS, 10) || 3600;
+const CACHE_TTL = parseInt(process.env.CACHE_TTL_SECONDS, 10) || 300;
 const CARERIX_GRAPHQL_URI = 'https://api.carerix.io/graphql/v1/graphql';
 
 // ─── In-memory cache (per medium) ────────────────────────────────────────────
