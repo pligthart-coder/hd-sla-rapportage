@@ -32,7 +32,7 @@ node server.js
 ```
 
 Unless `ADDRESS_DRY_RUN=false`, nothing is written to Carerix: the panel shows
-the XML it *would* send. Without internet access, set `ADDRESS_PROVIDERS=demo`
+the GraphQL mutation it *would* send. Without internet access, set `ADDRESS_PROVIDERS=demo`
 for sample addresses (try "dam", "utrecht", "rotterdam").
 
 ## 2. Address source
@@ -92,7 +92,7 @@ each address type lists the Carerix field per address part.
   `COUNTRY_NODE_IDS={"NL":1234,"BE":1235,"DE":1236}`. A country without a
   mapping is skipped and the panel shows a warning (other fields still save).
 
-Test with the dry run: pick an address and compare the shown XML with what you
+Test with the dry run: pick an address and compare the shown mutation with what you
 expect.
 
 ## 4. Carerix write access (GraphQL)
