@@ -18,3 +18,7 @@ This report names individual colleagues and their SLA figures. `vercel.json` set
 `X-Robots-Tag: noindex` so search engines won't index it, but a Vercel deploy is still
 reachable by anyone who has the URL. For internal data, turn on **Deployment Protection**
 (password) under the Vercel project settings.
+
+## Carerix address panel
+The address lookup panel for Carerix lives in its own repository:
+[pligthart-coder/carerix-address-panel](https://github.com/pligthart-coder/carerix-address-panel).
