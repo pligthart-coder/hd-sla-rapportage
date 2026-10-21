@@ -97,6 +97,8 @@
   .msg.ok { background: #e7f8ef; color: #07673a; }
   .msg.err { background: #fdecea; color: var(--danger); }
   .msg.info { background: #fff3e6; color: #a35700; }
+  .attribution { margin-top: 10px; font-size: 11px; color: var(--muted); }
+  .suggestions li .src { float: right; font-size: 10px; color: var(--muted); margin-left: 8px; }
   pre { white-space: pre-wrap; font-size: 11px; background: #fff; padding: 8px; border-radius: 4px; margin: 8px 0 0; }
   [hidden] { display: none !important; }
 </style>
@@ -139,6 +141,7 @@
     </form>
 
     <div id="msg" class="msg" hidden></div>
+    <div id="attribution" class="attribution"></div>
   </div>
 
 <script>
@@ -153,6 +156,7 @@
       saving: 'Saving…', saved: 'Address saved. Refresh the Carerix page to see the new values.',
       dryRun: 'Test mode: nothing was saved. This would be sent to Carerix:',
       missingParams: 'This panel needs ?entity=…&id=… in its URL.', demo: 'Demo addresses', test: 'Test mode',
+      source: 'Address data',
     },
   };
   const DEFAULT_NL = {
@@ -160,6 +164,7 @@
     saving: 'Opslaan…', saved: 'Adres opgeslagen. Ververs de Carerix-pagina om de nieuwe waarden te zien.',
     dryRun: 'Testmodus: er is niets opgeslagen. Dit zou naar Carerix gaan:',
     missingParams: 'Dit panel heeft ?entity=…&id=… in de URL nodig.', demo: 'Demo-adressen', test: 'Testmodus',
+    source: 'Adresgegevens',
   };
 
   const params = new URLSearchParams(location.search);
@@ -227,6 +232,7 @@
       renderTargets(config.targets);
       const badges = [config.demoMode && t('demo'), config.dryRun && t('test')].filter(Boolean);
       if (badges.length) { $('modeBadge').textContent = badges.join(' · '); $('modeBadge').hidden = false; }
+      $('attribution').textContent = `${t('source')}: ${config.attributions.join(' · ')}`;
       $('app').hidden = false;
       q.focus();
     } catch (err) {
@@ -284,7 +290,10 @@
       const li = document.createElement('li');
       li.role = 'option';
       li.id = `opt-${i}`;
-      li.textContent = s.main;
+      const src = document.createElement('span');
+      src.className = 'src';
+      src.textContent = s.source;
+      li.append(src, document.createTextNode(s.main));
       const small = document.createElement('small');
       small.textContent = s.secondary;
       li.appendChild(small);

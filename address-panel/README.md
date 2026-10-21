@@ -1,7 +1,6 @@
 # Carerix address panel (Google address lookup)
 
-A small HTML panel you embed in Carerix. The user searches an address (Google
-Places), checks the result, ticks **where** to save it (e.g. *Woonadres*,
+A small HTML panel you embed in Carerix. The user searches an address, checks the result, ticks **where** to save it (e.g. *Woonadres*,
 *Postadres*, *Factuuradres*) and clicks **Opslaan in Carerix**. The backend
 writes the fields to the record through the Carerix REST API.
 
@@ -9,8 +8,8 @@ writes the fields to the record through the Carerix REST API.
 Carerix record ──iframe──▶ /address-panel/?entity=CREmployee&id=123&key=…
                                    │
                                    ▼
-                           /api/address  (keeps the Google key + Carerix credentials server-side)
-                             ├─ Google Places API (New): autocomplete + details
+                           /api/address  (keeps API keys + Carerix credentials server-side)
+                             ├─ address search: PDOK (NL) + Photon/OpenStreetMap (Europe), or Google
                              └─ Carerix REST API: POST /CREmployee/123 (XML)
 ```
 
@@ -19,8 +18,9 @@ Carerix record ──iframe──▶ /address-panel/?entity=CREmployee&id=123&ke
 | `address-panel/index.html` | The panel UI (search, review, choose target, save) |
 | `api/address.js` | Vercel function, delegates to the handler |
 | `lib/address-panel/handler.js` | Routes `config`, `autocomplete`, `details`, `save` |
-| `lib/address-panel/google.js` | Google calls + built-in demo addresses |
-| `lib/address-panel/parse.js` | Google result → street / number / suffix / postcode / city / country |
+| `lib/address-panel/geocoder.js` | Picks the address providers and merges their results |
+| `lib/address-panel/providers/*.js` | One file per address source: `pdok`, `photon`, `google`, `demo` |
+| `lib/address-panel/parse.js` | Splits house numbers ("12A" → 12 + A), parses Google results |
 | `lib/address-panel/targets.js` | **The field mapping**: which Carerix fields each address type writes to |
 | `lib/address-panel/carerix.js` | Builds the XML and writes it to Carerix |
 
@@ -31,14 +31,36 @@ node server.js
 # open http://localhost:3000/address-panel/?entity=CREmployee&id=1
 ```
 
-Without `GOOGLE_MAPS_API_KEY` the panel uses demo addresses (try "dam",
-"utrecht", "rotterdam"). Unless `ADDRESS_DRY_RUN=false`, nothing is written to
-Carerix: the panel shows the XML it *would* send. Both modes show a badge.
+Unless `ADDRESS_DRY_RUN=false`, nothing is written to Carerix: the panel shows
+the XML it *would* send. Without internet access, set `ADDRESS_PROVIDERS=demo`
+for sample addresses (try "dam", "utrecht", "rotterdam").
 
-## 2. Google API key
+## 2. Address source
 
-Google has no public "test" key; you need your own (the free monthly credit
-covers normal panel use).
+Set `ADDRESS_PROVIDERS` (comma-separated, searched together). The default
+`pdok,photon` is free and needs no account or key.
+
+| Provider | Coverage | Cost / key | Notes |
+|---|---|---|---|
+| `pdok` | Netherlands | Free, no key | Official BAG register: every Dutch address incl. house letter and suffix. Best for NL. |
+| `photon` | Europe (worldwide data) | Free, no key | OpenStreetMap data. House numbers are good in NL/BE/DE, patchier elsewhere. Public server is "fair use" with no guarantee; for heavy use run your own and set `PHOTON_URL`. |
+| `google` | Worldwide | Key, paid after monthly credit | Most complete outside NL. |
+| `demo` | — | — | Sample data for testing. |
+
+When `pdok` is enabled, Dutch results come only from PDOK. Photon's Dutch
+duplicates are dropped. `ADDRESS_COUNTRIES=nl,be,de` limits results to those
+countries.
+
+Licence notes: PDOK/BAG data is open data. OpenStreetMap data (ODbL) may be
+stored, but you must show "© OpenStreetMap contributors". The panel shows the
+source under the results automatically.
+
+**Why not Mapbox Address Autofill?** It isn't free in practice. Mapbox needs a
+credit card, and the free allowance is small (about 100 to 1,000 sessions a
+month, depending on the plan). Adding it later is one extra file in
+`providers/`.
+
+### Optional: Google API key
 
 1. Google Cloud Console → create/select a project → enable billing.
 2. *APIs & Services → Library* → enable **Places API (New)**.
@@ -46,8 +68,8 @@ covers normal panel use).
 4. Restrict the key: *API restrictions* → only **Places API (New)**. The key
    is only used server-side, so no referrer restriction is needed (an IP
    restriction is possible if your server has a fixed IP).
-5. Set `GOOGLE_MAPS_API_KEY`. Optional: `GOOGLE_REGION_CODES` (default
-   `nl,be,de`) and `GOOGLE_LANGUAGE_CODE` (default `nl`).
+5. Set `GOOGLE_MAPS_API_KEY` and add `google` to `ADDRESS_PROVIDERS`
+   (e.g. `pdok,google`). Optional: `GOOGLE_LANGUAGE_CODE` (default `nl`).
 
 The panel uses Google session tokens (one per search + selection), which keeps
 autocomplete billing low.
