@@ -2,7 +2,7 @@
 
 A small HTML panel you embed in Carerix. The user searches an address, checks the result, ticks **where** to save it (e.g. *Woonadres*,
 *Postadres*, *Factuuradres*) and clicks **Opslaan in Carerix**. The backend
-writes the fields to the record through the Carerix REST API.
+writes the fields to the record through the Carerix GraphQL API.
 
 ```
 Carerix record ──iframe──▶ /address-panel/?entity=CREmployee&id=123&key=…
@@ -10,7 +10,7 @@ Carerix record ──iframe──▶ /address-panel/?entity=CREmployee&id=123&ke
                                    ▼
                            /api/address  (keeps API keys + Carerix credentials server-side)
                              ├─ address search: PDOK (NL) + Photon/OpenStreetMap (Europe), or Google
-                             └─ Carerix REST API: POST /CREmployee/123 (XML)
+                             └─ Carerix GraphQL: crEmployeeUpdate(_id, request)
 ```
 
 | File | What it does |
@@ -22,7 +22,7 @@ Carerix record ──iframe──▶ /address-panel/?entity=CREmployee&id=123&ke
 | `lib/providers/*.js` | One file per address source: `pdok`, `photon`, `google`, `demo` |
 | `lib/parse.js` | Splits house numbers ("12A" → 12 + A), parses Google results |
 | `lib/targets.js` | **The field mapping**: which Carerix fields each address type writes to |
-| `lib/carerix.js` | Builds the XML and writes it to Carerix |
+| `lib/carerix.js` | Builds the GraphQL mutation, checks it against the schema, writes to Carerix |
 
 ## 1. Try it locally (no keys needed)
 
@@ -95,28 +95,43 @@ each address type lists the Carerix field per address part.
 Test with the dry run: pick an address and compare the shown XML with what you
 expect.
 
-## 4. Carerix write access
+## 4. Carerix write access (GraphQL)
+
+Saving uses the Carerix GraphQL API (`https://api.carerix.io/graphql/v1/graphql`)
+with an OAuth client, the same kind as the RSS feed. Per entity the panel calls
+`crEmployeeUpdate` / `crCompanyUpdate` / `crUserUpdate` / `crVacancyUpdate`
+with `(_id, request)`. The argument types are read from your schema.
 
 All settings live in **Vercel → project `address-panel` → Settings →
 Environment Variables** (mark secrets as *Sensitive*). Never put credentials in
 the panel URL or the Carerix template. After adding or changing a variable,
-redeploy: **Deployments → latest → ⋯ → Redeploy**. Variables only apply to new
-deployments.
+redeploy: **Deployments → latest → ⋯ → Redeploy**.
 
-Pick one:
+| Variable | Value |
+|---|---|
+| `CARERIX_CLIENT_ID` | Client ID (Carerix → Identity Access → Clients) |
+| `CARERIX_CLIENT_SECRET` | Client secret |
+| `CARERIX_TOKEN_ENDPOINT` | e.g. `https://yourcompany.carerix.com/cxoauth2/token` |
+| `COUNTRY_NODE_IDS` | e.g. `{"NL":1234,"BE":1235}` |
+| `ADDRESS_DRY_RUN` | `true` while testing, `false` to save for real |
 
-- **REST token** (classic): `CARERIX_REST_USER` + `CARERIX_REST_TOKEN`
-  (Carerix → Instellingen → API). Uses HTTP Basic.
-- **OAuth client** (same as the RSS feed): `CARERIX_CLIENT_ID`,
-  `CARERIX_CLIENT_SECRET`, `CARERIX_TOKEN_ENDPOINT`. Make sure the client has
-  write rights on the entities you use.
+The client needs **write** access to the entities you use.
 
-Then set `ADDRESS_DRY_RUN=false` to make saving live. `CARERIX_REST_BASE`
-defaults to `https://api.carerix.com`.
+### Check the field mapping against Carerix
 
-Do a first live save on a test record and check the result in Carerix. If
-Carerix rejects the request, the panel shows Carerix's error message (usually a
-wrong field name in the mapping).
+Once the credentials are in, open (per entity):
+
+```
+https://address-panel-orcin.vercel.app/api/address?action=check&entity=CREmployee&key=YOUR_PANEL_KEY
+```
+
+It asks your Carerix GraphQL schema whether the update mutation exists and,
+per address type, whether each mapped field exists (`"exists": true/false`).
+`addressFieldsInSchema` lists the address-like fields Carerix *does* have, so
+you can fix `lib/targets.js`. The check only reads the schema and changes no data.
+
+A live save also refuses to send fields that aren't in the schema, and names
+them in the error.
 
 ## 5. Security
 

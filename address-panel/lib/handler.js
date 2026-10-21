@@ -6,14 +6,16 @@
  *   GET  /api/address?action=autocomplete&q=dam 1&session=…
  *   GET  /api/address?action=details&placeId=…&session=…
  *   POST /api/address?action=save   { entity, id, targets: [...], address: {...} }
+ *   GET  /api/address?action=check&entity=CREmployee   (field mapping vs. live Carerix schema)
  *
- * Every call must send the panel key (header X-Panel-Key) when PANEL_ACCESS_KEY is set.
+ * Every call must send the panel key (header X-Panel-Key, or ?key= for the check page)
+ * when PANEL_ACCESS_KEY is set.
  */
 
 import { timingSafeEqual } from 'node:crypto';
 import { autocomplete, details, attributions, getProviders } from './geocoder.js';
 import { describeTargets } from './targets.js';
-import { saveAddress, isDryRun } from './carerix.js';
+import { saveAddress, isDryRun, checkMapping } from './carerix.js';
 
 function send(res, status, payload) {
   res.statusCode = status;
@@ -25,7 +27,8 @@ function send(res, status, payload) {
 function keyIsValid(req) {
   const expected = process.env.PANEL_ACCESS_KEY;
   if (!expected) return true;
-  const given = req.headers['x-panel-key'] || '';
+  const url = new URL(req.url, 'http://localhost');
+  const given = req.headers['x-panel-key'] || url.searchParams.get('key') || '';
   const a = Buffer.from(String(given));
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
@@ -89,6 +92,11 @@ export default async function handleAddressRequest(req, res) {
       }
       const address = await details(placeId, url.searchParams.get('session') || undefined);
       send(res, 200, { address });
+      return;
+    }
+
+    if (action === 'check' && req.method === 'GET') {
+      send(res, 200, await checkMapping(url.searchParams.get('entity') || ''));
       return;
     }
 

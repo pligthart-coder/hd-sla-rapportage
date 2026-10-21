@@ -355,7 +355,7 @@
     show('info', t('saving'));
     try {
       const result = await api('save', {}, { entity, id: recordId, targets, address });
-      if (result.dryRun) show('info', t('dryRun'), result.xml);
+      if (result.dryRun) show('info', t('dryRun'), result.preview);
       else show('ok', t('saved'));
       if (result.warnings?.length) {
         const w = document.createElement('div');
