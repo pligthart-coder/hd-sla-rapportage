@@ -21,6 +21,7 @@ import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import handleAddressRequest from './lib/address-panel/handler.js';
 
 // ─── Load .env file if present ───────────────────────────────────────────────
 
@@ -517,6 +518,22 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // Carerix address panel (see address-panel/README.md)
+  if (pathname === '/api/address') {
+    await handleAddressRequest(req, res);
+    return;
+  }
+
+  if (pathname === '/address-panel' || pathname === '/address-panel/') {
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Security-Policy': `frame-ancestors ${process.env.PANEL_FRAME_ANCESTORS || "'self' https://*.carerix.com https://*.carerix.net"}`,
+      'X-Robots-Tag': 'noindex, nofollow',
+    });
+    res.end(readFileSync(resolve(__dirname, 'address-panel/index.html')));
+    return;
+  }
+
   // 404
   res.writeHead(404, { 'Content-Type': 'text/plain' });
   res.end('Not Found');
@@ -528,5 +545,6 @@ server.listen(PORT, () => {
   console.log(`  Web:      http://localhost:${PORT}/api/rss?medium=web`);
   console.log(`  Betaald:  http://localhost:${PORT}/api/rss?medium=betaald`);
   console.log(`  Health:   http://localhost:${PORT}/health`);
+  console.log(`  Address panel: http://localhost:${PORT}/address-panel/?entity=CREmployee&id=1`);
   console.log(`  Cache TTL: ${CACHE_TTL}s`);
 });
