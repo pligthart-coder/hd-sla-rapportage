@@ -20,4 +20,5 @@ reachable by anyone who has the URL. For internal data, turn on **Deployment Pro
 (password) under the Vercel project settings.
 
 ## Carerix address panel
-Google address lookup panel to embed in Carerix — see [`address-panel/README.md`](address-panel/README.md).
+The address lookup panel for Carerix lives in its own repository:
+[pligthart-coder/carerix-address-panel](https://github.com/pligthart-coder/carerix-address-panel).
