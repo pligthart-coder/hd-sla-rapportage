@@ -36,6 +36,7 @@ function toAddress(p) {
   const countryCode = (p.countrycode || '').toUpperCase();
   const street = p.street || (p.type === 'street' ? p.name : '') || '';
   const city = p.city || p.town || p.village || p.locality || p.district || '';
+  const countryName = COUNTRY_NAMES[countryCode] || p.country || '';
   return {
     street,
     houseNumber: number,
@@ -44,8 +45,8 @@ function toAddress(p) {
     city,
     province: p.state || '',
     countryCode,
-    countryName: COUNTRY_NAMES[countryCode] || p.country || '',
-    formatted: [[street, p.housenumber].filter(Boolean).join(' '), [p.postcode, city].filter(Boolean).join(' '), p.country]
+    countryName,
+    formatted: [[street, p.housenumber].filter(Boolean).join(' '), [p.postcode, city].filter(Boolean).join(' '), countryName]
       .filter(Boolean).join(', '),
   };
 }

@@ -53,11 +53,17 @@ export async function autocomplete(input, sessionToken) {
 
   const pdokAnswered = providers.some((p, i) => p === pdok && results[i].status === 'fulfilled');
 
+  // OpenStreetMap often has the same address twice (e.g. building + entrance)
+  const seen = new Set();
   return providers.flatMap((p, i) => {
     if (results[i].status !== 'fulfilled') return [];
     return results[i].value
       .filter((s) => !(pdokAnswered && p !== pdok && s.country === 'NL'))
       .filter((s) => !s.country || !allowed.length || allowed.includes(s.country))
+      .filter((s) => {
+        const key = `${s.main}|${s.secondary}`.toLowerCase();
+        return !seen.has(key) && seen.add(key);
+      })
       .map((s) => ({
         placeId: `${p.name}:${s.id}`,
         main: s.main,
