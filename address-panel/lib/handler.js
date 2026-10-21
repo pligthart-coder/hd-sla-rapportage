@@ -15,6 +15,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { autocomplete, details, attributions, getProviders } from './geocoder.js';
 import { describeTargets } from './targets.js';
+import { countryOptions } from './countries.js';
 import { saveAddress, isDryRun, checkMapping } from './carerix.js';
 
 function send(res, status, payload) {
@@ -69,6 +70,7 @@ export default async function handleAddressRequest(req, res) {
         demoMode: getProviders().some((p) => p.name === 'demo'),
         dryRun: isDryRun(),
         attributions: attributions(),
+        countries: countryOptions(),
       });
       return;
     }

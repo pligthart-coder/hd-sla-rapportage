@@ -60,7 +60,7 @@ export function buildRequest(entity, targetKeys, address) {
 
     for (const part of ALLOWED_PARTS) {
       const field = target.fields[part];
-      if (field) request[field] = (address[part] ?? '').toString().trim();
+      if (field) request[field] = (address[part] ?? '').toString().trim().slice(0, 200);
     }
 
     const countryField = target.fields.country;

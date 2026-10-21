@@ -52,6 +52,18 @@
     color: inherit;
     background: #fff;
   }
+  select {
+    width: 100%; padding: 8px 6px; border: 1px solid var(--line); border-radius: 6px;
+    font: inherit; color: inherit; background: #fff;
+  }
+  select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  .invalid { border-color: var(--danger) !important; background: #fff8f7 !important; }
+  .req { color: var(--danger); }
+  .link {
+    background: none; border: 0; padding: 0; margin-top: 6px;
+    font: 500 12px "Maven Pro", sans-serif; color: var(--accent); cursor: pointer; text-decoration: underline;
+  }
+  .suggestions li.manual { color: var(--accent); font-weight: 600; border-top: 1px solid var(--line); }
   input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
 
   .search { position: relative; }
@@ -118,17 +130,18 @@
       <input id="q" type="text" autocomplete="off" role="combobox" aria-expanded="false"
              aria-controls="suggestions" aria-autocomplete="list" placeholder="bijv. 1012 JS 1 of Dam 1 Amsterdam">
       <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+      <button type="button" class="link" id="manualBtn" data-t="manualLink">Adres niet gevonden? Handmatig invoeren</button>
     </div>
 
     <form id="form" class="card" hidden>
-      <h2 data-t="foundAddress">Gevonden adres</h2>
+      <h2 id="formTitle">Gevonden adres</h2>
       <div class="grid">
-        <div class="wide"><label class="lbl" for="street" data-t="street">Straat</label><input id="street" type="text"></div>
-        <div><label class="lbl" for="houseNumber" data-t="houseNumber">Huisnr.</label><input id="houseNumber" type="text"></div>
+        <div class="wide"><label class="lbl" for="street"><span data-t="street">Straat</span> <span class="req">*</span></label><input id="street" type="text"></div>
+        <div><label class="lbl" for="houseNumber"><span data-t="houseNumber">Huisnr.</span> <span class="req">*</span></label><input id="houseNumber" type="text"></div>
         <div><label class="lbl" for="houseNumberSuffix" data-t="suffix">Toevoeging</label><input id="houseNumberSuffix" type="text"></div>
-        <div><label class="lbl" for="postalCode" data-t="postalCode">Postcode</label><input id="postalCode" type="text"></div>
-        <div class="wide"><label class="lbl" for="city" data-t="city">Plaats</label><input id="city" type="text"></div>
-        <div><label class="lbl" for="countryName" data-t="country">Land</label><input id="countryName" type="text" readonly></div>
+        <div><label class="lbl" for="postalCode"><span data-t="postalCode">Postcode</span> <span class="req">*</span></label><input id="postalCode" type="text"></div>
+        <div class="wide"><label class="lbl" for="city"><span data-t="city">Plaats</span> <span class="req">*</span></label><input id="city" type="text"></div>
+        <div><label class="lbl" for="countryCode" data-t="country">Land</label><select id="countryCode"></select></div>
       </div>
 
       <h2 style="margin-top:14px" data-t="saveAs">Opslaan als</h2>
@@ -150,6 +163,9 @@
     nl: {},
     en: {
       title: 'Address lookup', searchLabel: 'Search by street, postcode or city', foundAddress: 'Address found',
+      manualTitle: 'Enter address manually', manualLink: 'Address not found? Enter it manually',
+      manualOption: 'Not in the list? Enter manually', searchFailed: 'Address search is unavailable right now. You can enter the address manually.',
+      required: 'Fill in the required fields', invalidPostcode: 'Invalid Dutch postcode (e.g. 1234 AB)',
       street: 'Street', houseNumber: 'No.', suffix: 'Suffix', postalCode: 'Postcode', city: 'City',
       country: 'Country', saveAs: 'Save as', save: 'Save to Carerix', reset: 'Search again',
       noResults: 'No addresses found', chooseTarget: 'Choose at least one address type',
@@ -161,6 +177,10 @@
   };
   const DEFAULT_NL = {
     noResults: 'Geen adressen gevonden', chooseTarget: 'Kies minimaal één adrestype',
+    foundAddress: 'Gevonden adres', manualTitle: 'Adres handmatig invoeren',
+    manualOption: 'Staat het er niet bij? Handmatig invoeren',
+    searchFailed: 'Adres zoeken lukt nu niet. Je kunt het adres handmatig invoeren.',
+    required: 'Vul de verplichte velden in', invalidPostcode: 'Ongeldige Nederlandse postcode (bijv. 1234 AB)',
     saving: 'Opslaan…', saved: 'Adres opgeslagen. Ververs de Carerix-pagina om de nieuwe waarden te zien.',
     dryRun: 'Testmodus: er is niets opgeslagen. Dit zou naar Carerix gaan:',
     missingParams: 'Dit panel heeft ?entity=…&id=… in de URL nodig.', demo: 'Demo-adressen', test: 'Testmodus',
@@ -182,7 +202,9 @@
 
   const $ = (id) => document.getElementById(id);
   const q = $('q'), list = $('suggestions'), form = $('form'), msg = $('msg');
-  const FIELDS = ['street', 'houseNumber', 'houseNumberSuffix', 'postalCode', 'city', 'countryName'];
+  const FIELDS = ['street', 'houseNumber', 'houseNumberSuffix', 'postalCode', 'city'];
+  const REQUIRED = ['street', 'houseNumber', 'postalCode', 'city'];
+  const countrySelect = $('countryCode');
 
   let sessionToken = newSession();
   let suggestions = [];
@@ -230,6 +252,7 @@
     try {
       const config = await api('config', { entity });
       renderTargets(config.targets);
+      renderCountries(config.countries);
       const badges = [config.demoMode && t('demo'), config.dryRun && t('test')].filter(Boolean);
       if (badges.length) { $('modeBadge').textContent = badges.join(' · '); $('modeBadge').hidden = false; }
       $('attribution').textContent = `${t('source')}: ${config.attributions.join(' · ')}`;
@@ -239,6 +262,20 @@
       $('fatal').textContent = err.message;
       $('fatal').hidden = false;
     }
+  }
+
+  function renderCountries(countries) {
+    countrySelect.innerHTML = '';
+    countries.forEach((c) => countrySelect.add(new Option(c.name, c.code)));
+  }
+
+  /** Select a country; add it to the list when it isn't there yet. */
+  function setCountry(code, name) {
+    if (!code) { countrySelect.selectedIndex = 0; return; }
+    if (![...countrySelect.options].some((o) => o.value === code)) {
+      countrySelect.add(new Option(name || code, code));
+    }
+    countrySelect.value = code;
   }
 
   function renderTargets(targets) {
@@ -273,7 +310,9 @@
       suggestions = data.suggestions;
       renderList();
     } catch (err) {
-      show('err', err.message);
+      closeList();
+      show('err', t('searchFailed'));
+      console.error(err);
     }
   }
 
@@ -300,6 +339,11 @@
       li.addEventListener('mousedown', (e) => { e.preventDefault(); choose(i); });
       list.appendChild(li);
     });
+    const manual = document.createElement('li');
+    manual.className = 'manual';
+    manual.textContent = t('manualOption');
+    manual.addEventListener('mousedown', (e) => { e.preventDefault(); closeList(); openForm(null); });
+    list.appendChild(manual);
     list.hidden = false;
     q.setAttribute('aria-expanded', 'true');
   }
@@ -333,22 +377,65 @@
     try {
       const data = await api('details', { placeId: s.placeId, session: sessionToken });
       sessionToken = newSession(); // a Google session ends with the details call
-      current = data.address;
-      FIELDS.forEach((f) => { $(f).value = current[f] || ''; });
-      form.hidden = false;
+      openForm(data.address);
     } catch (err) {
       show('err', err.message);
     }
   }
 
+  /** Show the form: filled from a found address, or empty for manual entry. */
+  function openForm(address) {
+    current = address || {};
+    $('formTitle').textContent = address ? t('foundAddress') : t('manualTitle');
+    FIELDS.forEach((f) => { $(f).value = current[f] || ''; $(f).classList.remove('invalid'); });
+    setCountry(current.countryCode, current.countryName);
+    msg.hidden = true;
+    form.hidden = false;
+    if (!address) $('street').focus();
+  }
+
+  $('manualBtn').addEventListener('click', () => { closeList(); openForm(null); });
+
+  /** "1012js" → "1012 JS"; returns null when it isn't a valid Dutch postcode. */
+  function normalizeDutchPostcode(value) {
+    const m = value.replace(/\s+/g, '').match(/^([1-9]\d{3})([a-zA-Z]{2})$/);
+    return m ? `${m[1]} ${m[2].toUpperCase()}` : null;
+  }
+
+  function validate() {
+    let ok = true;
+    REQUIRED.forEach((f) => {
+      const empty = !$(f).value.trim();
+      $(f).classList.toggle('invalid', empty);
+      if (empty) ok = false;
+    });
+    if (!ok) { show('err', t('required')); return false; }
+
+    if (countrySelect.value === 'NL') {
+      const pc = normalizeDutchPostcode($('postalCode').value);
+      if (!pc) {
+        $('postalCode').classList.add('invalid');
+        show('err', t('invalidPostcode'));
+        return false;
+      }
+      $('postalCode').value = pc;
+    }
+    return true;
+  }
+
+  FIELDS.forEach((f) => $(f).addEventListener('input', () => $(f).classList.remove('invalid')));
+
   // ─── Save ───────────────────────────────────────────────────────────────
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const targets = [...form.querySelectorAll('input[name=target]:checked')].map((c) => c.value);
+    if (!validate()) return;
     if (!targets.length) { show('err', t('chooseTarget')); return; }
 
     const address = { ...current };
     FIELDS.forEach((f) => { address[f] = $(f).value.trim(); });
+    address.countryCode = countrySelect.value;
+    address.countryName = countrySelect.selectedOptions[0]?.text || '';
 
     const btn = $('saveBtn');
     btn.disabled = true;

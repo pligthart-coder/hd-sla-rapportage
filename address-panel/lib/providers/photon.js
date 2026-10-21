@@ -7,21 +7,13 @@
  */
 
 import { splitHouseNumber } from '../parse.js';
+import { COUNTRY_NAMES } from '../countries.js';
 
 export const name = 'photon';
 export const attribution = '© OpenStreetMap contributors';
 
 // Rough bounding box of Europe (minLon,minLat,maxLon,maxLat)
 const DEFAULT_BBOX = '-25,34,45,72';
-
-const COUNTRY_NAMES = {
-  NL: 'Nederland', BE: 'België', DE: 'Duitsland', FR: 'Frankrijk', LU: 'Luxemburg',
-  GB: 'Verenigd Koninkrijk', IE: 'Ierland', ES: 'Spanje', PT: 'Portugal', IT: 'Italië',
-  AT: 'Oostenrijk', CH: 'Zwitserland', DK: 'Denemarken', SE: 'Zweden', NO: 'Noorwegen',
-  FI: 'Finland', PL: 'Polen', CZ: 'Tsjechië', HU: 'Hongarije', RO: 'Roemenië', BG: 'Bulgarije',
-  GR: 'Griekenland', HR: 'Kroatië', SI: 'Slovenië', SK: 'Slowakije', LT: 'Litouwen',
-  LV: 'Letland', EE: 'Estland',
-};
 
 export function isConfigured() {
   return true;
