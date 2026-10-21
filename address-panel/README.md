@@ -125,9 +125,17 @@ wrong field name in the mapping).
 
 ## 6. Embed in Carerix
 
-Deploy (`vercel --prod` or Docker), then add a custom HTML panel/tab to the
-candidate or company screen with an iframe. The record id must be filled in by
-Carerix. Use the placeholder syntax your Carerix environment supports, for example:
+There is **one panel for all entities**: the `entity=` parameter decides which
+address types it shows and which fields it writes (see `targets.js`). In
+Carerix you add one HTML panel/template per screen, with the same iframe. Only
+`entity=` and the record-id placeholder change:
+
+| Carerix screen | `entity=` | Record id placeholder (example) | Address types |
+|---|---|---|---|
+| Kandidaat | `CREmployee` | `$employee.employeeID` | Woonadres, Postadres |
+| Bedrijf | `CRCompany` | `$company.companyID` | Bezoekadres, Postadres, Factuuradres |
+| Contactpersoon | `CRUser` | `$user.userID` | Zakelijk adres |
+| Vacature | `CRVacancy` | `$vacancy.vacancyID` | Werklocatie |
 
 ```html
 <iframe
@@ -136,8 +144,9 @@ Carerix. Use the placeholder syntax your Carerix environment supports, for examp
 </iframe>
 ```
 
-For companies use `entity=CRCompany` and the company id
-(e.g. `$company.companyID`). Add `&lang=en` for English labels.
+Add `&lang=en` for English labels. To add or change address types for an
+entity, edit `targets.js` (or `ADDRESS_TARGETS_JSON`). No change to the panel
+or the Carerix templates is needed.
 
 > The exact way to add an HTML panel and the placeholder syntax depend on your
 > Carerix version and module. Check with your Carerix consultant/support if
