@@ -1,0 +1,11 @@
+{
+  "name": "carerix-address-panel",
+  "version": "1.0.0",
+  "description": "Address lookup panel for Carerix (PDOK, Photon, Google)",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}

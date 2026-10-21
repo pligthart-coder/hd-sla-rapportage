@@ -8,7 +8,6 @@ WORKDIR /app
 # Copy only what's needed for the standalone server
 COPY server.js ./
 COPY package.json ./
-COPY lib ./lib
 COPY address-panel ./address-panel
 
 # No npm install needed — zero dependencies (uses Node.js built-in fetch)

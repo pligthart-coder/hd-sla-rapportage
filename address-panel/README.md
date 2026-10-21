@@ -15,14 +15,14 @@ Carerix record ──iframe──▶ /address-panel/?entity=CREmployee&id=123&ke
 
 | File | What it does |
 |---|---|
-| `address-panel/index.html` | The panel UI (search, review, choose target, save) |
+| `index.html` | The panel UI (search, review, choose target, save) |
 | `api/address.js` | Vercel function, delegates to the handler |
-| `lib/address-panel/handler.js` | Routes `config`, `autocomplete`, `details`, `save` |
-| `lib/address-panel/geocoder.js` | Picks the address providers and merges their results |
-| `lib/address-panel/providers/*.js` | One file per address source: `pdok`, `photon`, `google`, `demo` |
-| `lib/address-panel/parse.js` | Splits house numbers ("12A" → 12 + A), parses Google results |
-| `lib/address-panel/targets.js` | **The field mapping**: which Carerix fields each address type writes to |
-| `lib/address-panel/carerix.js` | Builds the XML and writes it to Carerix |
+| `lib/handler.js` | Routes `config`, `autocomplete`, `details`, `save` |
+| `lib/geocoder.js` | Picks the address providers and merges their results |
+| `lib/providers/*.js` | One file per address source: `pdok`, `photon`, `google`, `demo` |
+| `lib/parse.js` | Splits house numbers ("12A" → 12 + A), parses Google results |
+| `lib/targets.js` | **The field mapping**: which Carerix fields each address type writes to |
+| `lib/carerix.js` | Builds the XML and writes it to Carerix |
 
 ## 1. Try it locally (no keys needed)
 
@@ -76,7 +76,7 @@ autocomplete billing low.
 
 ## 3. Map the Carerix fields
 
-Open `lib/address-panel/targets.js`. Per entity (`CREmployee`, `CRCompany`, …)
+Open `lib/targets.js`. Per entity (`CREmployee`, `CRCompany`, …)
 each address type lists the Carerix field per address part.
 
 > ⚠️ The default field names are a starting point, **not verified against
@@ -96,6 +96,12 @@ Test with the dry run: pick an address and compare the shown XML with what you
 expect.
 
 ## 4. Carerix write access
+
+All settings live in **Vercel → project `address-panel` → Settings →
+Environment Variables** (mark secrets as *Sensitive*). Never put credentials in
+the panel URL or the Carerix template. After adding or changing a variable,
+redeploy: **Deployments → latest → ⋯ → Redeploy**. Variables only apply to new
+deployments.
 
 Pick one:
 
@@ -125,6 +131,11 @@ wrong field name in the mapping).
 
 ## 6. Embed in Carerix
 
+The panel runs as its own Vercel project, **`address-panel`**, with **Root
+Directory** set to `address-panel/`. The production URL serves the panel at
+`/` and the API at `/api/address`. Only preview deployments require a Vercel
+login, so Carerix can load the production URL.
+
 There is **one panel for all entities**: the `entity=` parameter decides which
 address types it shows and which fields it writes (see `targets.js`). In
 Carerix you add one HTML panel/template per screen, with the same iframe. Only
@@ -139,7 +150,7 @@ Carerix you add one HTML panel/template per screen, with the same iframe. Only
 
 ```html
 <iframe
-  src="https://YOUR-DEPLOY.vercel.app/address-panel/?entity=CREmployee&id=<cx:write value="$employee.employeeID"/>&key=YOUR_PANEL_KEY"
+  src="https://YOUR-DEPLOY.vercel.app/?entity=CREmployee&id=<cx:write value="$employee.employeeID"/>&key=YOUR_PANEL_KEY"
   style="width:100%;height:520px;border:0">
 </iframe>
 ```

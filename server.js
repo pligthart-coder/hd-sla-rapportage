@@ -21,7 +21,7 @@ import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import handleAddressRequest from './lib/address-panel/handler.js';
+import handleAddressRequest from './address-panel/lib/handler.js';
 
 // ─── Load .env file if present ───────────────────────────────────────────────
 
